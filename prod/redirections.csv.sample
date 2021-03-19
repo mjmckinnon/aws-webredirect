@@ -1,0 +1,6 @@
+site_id,request_path,target_url
+*,*,https://example.com/
+example.com,*,https://target.site/
+example.com,/hello-world,https://target.site/hello-world
+example.com,/,https://target.site/
+anothersite.test,*,https://target.site/
