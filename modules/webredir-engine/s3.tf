@@ -4,7 +4,14 @@ data "aws_caller_identity" "current" {}
 # An S3 bucket for storing logs
 resource "aws_s3_bucket" "log_bucket" {
   bucket = "web-redir-log-bucket"
-  acl    = "log-delivery-write"
+}
+
+# ACL for S3 log bucket
+resource "aws_s3_bucket_acl" "log_bucket_acl" {
+  bucket = aws_s3_bucket.log_bucket.id
+  # TODO check if the below is correct, according to AWS docs
+  # https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html#canned-acl
+  acl = "log-delivery-write"
 }
 
 # Apply policy to the S3 bucket
