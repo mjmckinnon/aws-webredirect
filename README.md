@@ -21,7 +21,7 @@ First you'll need to install [Terraform](https://terraform.io) and get it workin
 
 The working directory for doing everything in here is:
 
-    git clone git@github.com:mjmckinnon/aws-webredirect.git
+    git clone https://github.com/mjmckinnon/aws-webredirect.git
     cd aws-webredirect/prod
 
 You should initialise the terraform modules, and create some static nameservers:
