@@ -19,11 +19,19 @@ Some of the objects that are created as part of this web redirection engine incl
 
 First you'll need to install [Terraform](https://terraform.io) and get it working, make sure you understand how it works.
 
-The working directory for doing stuff in here is:
+The working directory for doing everything in here is:
 
-    cd prod
+    git clone git@github.com:mjmckinnon/aws-webredirect.git
+    cd aws-webredirect/prod
 
-Then you should make a copy of the sample CSV file:
+You should initialise the terraform modules, and create some static nameservers:
+
+    terraform init
+    terraform apply --target aws_route53_delegation_set.nameservers
+
+You should see a list of four nameservers from AWS appear in the output - make a note of them!
+
+Then you should make a copy of the sample CSV file and edit accordingly:
 
     cp redirections.csv.sample redirections.csv
 
@@ -58,32 +66,46 @@ If a rule and a wildcard entry do not match the request, the web redirection eng
 
 ## Order of operations
 
-When you add a domain, typically by editing the `main.tf` file and adding two sections such as:
+When you add a domain, you will typically edit the `main.tf` (or other custom) file and add two sections such as:
 
-    resource "aws_route53_zone" "example" {
-        name = "example.com"
+    resource "aws_route53_zone" "MYDOMAIN-COM" {
+        name = "mydomain.com"
         delegation_site_id = aws_route53_delegation_set.nameservers.id
     }
 
-    module "example" {
+    module "MYDOMAIN-COM" {
         source = "../modules/webredir-zone"
-        zone_id = data.aws_route53_zone.example.zone_id
+        zone_id = aws_route53_zone.MYDOMAIN-COM.zone_id
         loadbalancer_arn = module.webredirengine.loadbalancer_arn
         https_listener_arn = module.webredirengine.https_listener_arn
     }
 
-Note the "example" tag which you should change to be a unique variable to reference your domain (especially useful when adding lots of domains to this system). It will mean that zone will be referenced in Terraform as something like: `aws_route53_zone.example`.
+Note the "MYDOMAIN-COM" which would be your unique variable to reference the domain (needed when adding lots of domains to this system). It will mean that zone will be referenced in Terraform as something like: `aws_route53_zone.mydomain-com`.
+
+You may also want to manage other DNS records for these domains with additional records, such as:
+
+    resource "aws_route53_record" "WWW-MYDOMAIN-COM-A" {
+        aws_route53_zone.MYDOMAIN-COM.zone_id
+        name = "www.mydomain.com"
+        type = "A"
+        ttl = 3600
+        records = [
+            "127.0.0.1"
+        ]
+    }
+
+Read up on Terraform to take advantage of infrastructure and DNS configuration as code!
 
 Here is an example of the correct order of operations for using this web redirection engine:
 
-1. Edit the `main.tf` file and add your domain to it.
-1. Don't forget to edit the `redirections.csv` file and add redirection rules for your domain (see above about `site_id` and syntax of that file)
+1. Always work from the `prod/` folder, no need to edit any files in the modules path.
+1. Edit the `prod/main.tf` file and add your domain to it, or group domains into separate `.tf` files in the same path.
+1. Don't forget to create your own `redirections.csv` file (copy from the sample) and add rules (see above about `site_id` and syntax of that file)
 1. Validate the terraform code with `terraform validate` and correct any syntax errors.
-1. You must first initialise terraform which will add the new module you likely added to the main file, with `terraform init` (from the prod folder)
-1. Run terraform so that it only creates the zone, with `terraform apply --target=aws_route53_zone.example` (replacing example with the tag for your domain).
-1. Now you'll need to redelegate the registered domain name to the AWS nameservers that are output at the end of the terraform script.
+1. Whenever you add a new `module` reference you must also initialise it, with `terraform init` (always from the prod folder)
+1. Before proceeding further, you MUST redelegate the live domain name(s) you're setting up to the AWS nameservers you took note of in the Getting Started.
 1. You might need to wait a little while to ensure DNS propagates [here is a useful site](https://www.whatsmydns.net) to check that.
-1. Run terraform again with all targets - `terraform apply` - check what actions it will do, be mindful of any deletions or updates, and choose y/n.
-1. If you get an error about binding the certificate, this can happen, just run terraform again `terraform apply` to try again, and it should complete.
+1. Now it's time for the magic! Run `terraform apply` and carefully check what actions it will do, pay atttention to any deletions/updates.
+1. If you get any errors simply try to run `terraform apply` again, and if it persists file an issue here and let me know!
 
-Congratulations! Your live production domain should now be accepting HTTP/S requests and redirecting according to your CSV file.
+Congratulations! Your live production domain(s) should now be accepting HTTP/S requests and redirecting according to your CSV file.
