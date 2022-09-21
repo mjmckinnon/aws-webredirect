@@ -7,7 +7,7 @@ import re
 
 def getBaseSite(host):
     """Take a host header and return it without www."""
-    return re.sub("^www.", "", host, 1)
+    return re.sub("^www.", "", host.lower(), 1)
 
 
 def getTargetPage(site_id, event_path):
@@ -49,15 +49,15 @@ def web_handler(event, context):
         return {
             "statusCode": 301,
             "headers": {
-                "strict-transport-security": "max-age=31536000; includeSubDomains",
-                "location": target_url
+                "Strict-Transport-Security": "max-age=31536000",
+                "Location": target_url
             }
         }
     else:
         return {
             "statusCode": 404,
             "headers": {
-                "strict-transport-security": "max-age=31536000; includeSubDomains",
+                "Strict-Transport-Security": "max-age=31536000",
                 "Content-Type": "text/html"
             },
             "body": "Sorry, that page was not found."
